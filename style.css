@@ -1,0 +1,152 @@
+:root {
+    --titulo1: #ef4502;
+    --titulo2: #ff7b33;
+    --texto1: #333333;
+    --texto2: #666666;
+    --bg-light: #f8f9fa;
+    --border-light: #e9ecef;
+    --shadow: 0 4px 20px rgba(239, 69, 2, 0.15);
+    --success: #28a745;
+    --error: #dc3545;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Comfortaa', sans-serif;
+    background: linear-gradient(135deg, #fff9f5 0%, #f8f9fa 100%);
+    color: var(--texto1);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 560px;
+    background: white;
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--titulo1) 0%, var(--titulo2) 100%);
+    padding: 30px;
+    text-align: center;
+}
+
+.header h1 {
+    font-family: 'Lexend', sans-serif;
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.header p {
+    color: rgba(255,255,255,0.9);
+    font-size: 14px;
+}
+
+form { padding: 30px; }
+
+.input-group { margin-bottom: 20px; }
+
+.input-group label {
+    display: block; margin-bottom: 8px;
+    font-weight: 600; color: var(--texto1); font-size: 14px;
+}
+
+.input-field {
+    width: 100%; padding: 14px;
+    border: 2px solid var(--border-light);
+    border-radius: 12px;
+    font-family: 'Comfortaa', sans-serif;
+    font-size: 16px; transition: all 0.3s ease; background: white;
+}
+
+.input-field:focus {
+    outline: none; border-color: var(--titulo2);
+    box-shadow: 0 0 0 3px rgba(255,123,51,.2);
+}
+
+.field-message { display: block; margin-top: 6px; font-size: 13px; font-weight: 600; }
+.field-message.success { color: var(--success); }
+.field-message.error   { color: var(--error); }
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+}
+
+.checkbox-container {
+    display: flex; align-items: center;
+    cursor: pointer; font-size: 14px;
+    user-select: none; gap: 8px;
+    padding: 10px 12px;
+    border: 2px solid var(--border-light);
+    border-radius: 10px;
+    transition: border-color .2s ease;
+}
+
+.checkbox-container input { display: none; }
+
+.checkbox-container:has(input:checked) {
+    border-color: var(--titulo2);
+    background: #fff5ef;
+}
+
+.checkmark {
+    flex-shrink: 0; width: 20px; height: 20px;
+    border: 2px solid var(--titulo1); border-radius: 4px;
+    display: inline-block; position: relative;
+    background-color: #fff;
+}
+
+.checkbox-container input:checked ~ .checkmark { background-color: var(--titulo1); border-color: var(--titulo1); }
+
+.checkbox-container input:checked ~ .checkmark:after {
+    content: "✓"; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%,-50%);
+    color: white; font-size: 13px; font-weight: bold;
+}
+
+.btn {
+    width: 100%; padding: 16px; border: none; border-radius: 12px;
+    font-family: 'Comfortaa', sans-serif; font-size: 17px;
+    font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.btn-submit {
+    background: linear-gradient(135deg, var(--titulo1) 0%, var(--titulo2) 100%);
+    color: white; box-shadow: 0 4px 15px rgba(239,69,2,.3);
+}
+
+.btn-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239,69,2,.4);
+}
+
+.submit-error {
+    background: #fdecea; color: var(--error);
+    border: 1px solid #f5c2c0; border-radius: 10px;
+    padding: 12px 16px; font-size: 14px; margin-bottom: 16px;
+}
+
+.hidden { display: none; }
+
+.success-box { padding: 40px 30px; text-align: center; }
+.success-box h2 { font-family: 'Lexend', sans-serif; color: var(--success); font-size: 24px; margin-bottom: 12px; }
+.success-box p { font-size: 16px; line-height: 1.6; color: var(--texto1); }
+
+@media (max-width: 480px) {
+    .header h1 { font-size: 19px; }
+    .checkbox-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+}
