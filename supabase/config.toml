@@ -1,0 +1,7 @@
+project_id = "sistema-master-nova-selecao"
+
+[functions.verificar-cpf]
+verify_jwt = false
+
+[functions.enviar-candidatura]
+verify_jwt = false
