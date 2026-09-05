@@ -12,20 +12,148 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html { scroll-behavior: smooth; }
+
 body {
     font-family: 'Comfortaa', sans-serif;
-    background: linear-gradient(135deg, #fff9f5 0%, #f8f9fa 100%);
+    background: #f8f9fa;
     color: var(--texto1);
     min-height: 100vh;
+}
+
+/* ============================================================
+   LAYOUT — mobile primeiro: empilhado (institucional + form).
+   Desktop (>=900px): duas colunas lado a lado.
+   ============================================================ */
+.page {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+@media (min-width: 900px) {
+    .page {
+        flex-direction: row;
+        align-items: stretch;
+    }
+}
+
+/* ── PAINEL INSTITUCIONAL ─────────────────────────────────── */
+.hero-panel {
+    background: linear-gradient(160deg, var(--titulo1) 0%, var(--titulo2) 100%);
+    color: white;
+    padding: 40px 24px;
+    display: flex;
     align-items: center;
-    padding: 20px;
+    justify-content: center;
+}
+
+@media (min-width: 900px) {
+    .hero-panel {
+        flex: 0 0 44%;
+        max-width: 560px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 56px 48px;
+        overflow-y: auto;
+    }
+}
+
+.hero-content { max-width: 480px; margin: 0 auto; }
+
+.brand {
+    display: flex; align-items: center; gap: 10px;
+    font-family: 'Lexend', sans-serif; font-weight: 700; font-size: 16px;
+    margin-bottom: 24px; letter-spacing: 0.3px;
+}
+.brand-icon { width: 28px; height: 28px; flex-shrink: 0; }
+
+.hero-title {
+    font-family: 'Lexend', sans-serif;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 800;
+    line-height: 1.25;
+    margin-bottom: 18px;
+}
+
+.hero-lead {
+    font-size: 16px; line-height: 1.6;
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.hero-text {
+    font-size: 14.5px; line-height: 1.7;
+    opacity: 0.95;
+    margin-bottom: 14px;
+}
+
+.hero-text strong { font-weight: 700; }
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 26px 0 20px;
+}
+
+.stat {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 14px;
+    padding: 14px 8px;
+    text-align: center;
+}
+
+.stat-number {
+    display: block;
+    font-family: 'Lexend', sans-serif;
+    font-size: 26px; font-weight: 800; line-height: 1;
+    margin-bottom: 6px;
+}
+
+.stat-label {
+    display: block;
+    font-size: 11px; line-height: 1.3;
+    opacity: 0.9;
+}
+
+.badge-premio {
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px; font-weight: 600; line-height: 1.5;
+    margin-bottom: 22px;
+}
+
+.hero-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.hero-links a {
+    color: white; font-size: 14px; font-weight: 600;
+    text-decoration: none; opacity: 0.95;
+    border-bottom: 1px solid rgba(255,255,255,0.5);
+    padding-bottom: 2px;
+    transition: opacity .2s ease;
+}
+.hero-links a:hover { opacity: 1; }
+
+/* ── PAINEL DO FORMULÁRIO ─────────────────────────────────── */
+.form-panel {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+}
+
+@media (min-width: 900px) {
+    .form-panel { padding: 56px 40px; min-height: 100vh; }
 }
 
 .container {
     width: 100%;
-    max-width: 560px;
+    max-width: 520px;
     background: white;
     border-radius: 20px;
     box-shadow: var(--shadow);
@@ -34,26 +162,26 @@ body {
 
 .header {
     background: linear-gradient(135deg, var(--titulo1) 0%, var(--titulo2) 100%);
-    padding: 30px;
+    padding: 28px 30px;
     text-align: center;
 }
 
 .header h1 {
     font-family: 'Lexend', sans-serif;
     color: white;
-    font-size: 22px;
+    font-size: 21px;
     font-weight: 700;
     margin: 0 0 4px;
 }
 
 .header p {
     color: rgba(255,255,255,0.9);
-    font-size: 14px;
+    font-size: 13.5px;
 }
 
-form { padding: 30px; }
+form { padding: 28px 30px 30px; }
 
-.input-group { margin-bottom: 20px; }
+.input-group { margin-bottom: 22px; }
 
 .input-group label {
     display: block; margin-bottom: 8px;
@@ -65,7 +193,8 @@ form { padding: 30px; }
     border: 2px solid var(--border-light);
     border-radius: 12px;
     font-family: 'Comfortaa', sans-serif;
-    font-size: 16px; transition: all 0.3s ease; background: white;
+    font-size: 16px; transition: border-color .25s ease, box-shadow .25s ease;
+    background: white;
 }
 
 .input-field:focus {
@@ -77,22 +206,32 @@ form { padding: 30px; }
 .field-message.success { color: var(--success); }
 .field-message.error   { color: var(--error); }
 
+/* ── GRADE DE CHECKBOXES (dias / horários) ────────────────── */
 .checkbox-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
 }
 
-.checkbox-container {
-    display: flex; align-items: center;
-    cursor: pointer; font-size: 14px;
-    user-select: none; gap: 8px;
-    padding: 10px 12px;
+/* espaçamento extra entre o bloco "dias" e o bloco "horários" */
+.input-group + .input-group { margin-top: 6px; }
+
+label.checkbox-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;   /* centraliza o conteúdo (checkbox + nome) no meio da caixa */
+    cursor: pointer;
+    font-size: 14px;
+    user-select: none;
+    gap: 10px;                 /* espaçamento entre o ícone do checkbox e o nome/horário */
+    padding: 12px 10px;
+    min-height: 48px;
     border: 2px solid var(--border-light);
     border-radius: 10px;
-    transition: border-color .2s ease;
+    transition: border-color .2s ease, background-color .2s ease, transform .15s ease;
 }
 
+.checkbox-container:active { transform: scale(0.97); }
 .checkbox-container input { display: none; }
 
 .checkbox-container:has(input:checked) {
@@ -100,14 +239,21 @@ form { padding: 30px; }
     background: #fff5ef;
 }
 
+.checkbox-label { text-align: center; line-height: 1.2; }
+
 .checkmark {
     flex-shrink: 0; width: 20px; height: 20px;
     border: 2px solid var(--titulo1); border-radius: 4px;
     display: inline-block; position: relative;
     background-color: #fff;
+    transition: transform .2s ease;
 }
 
-.checkbox-container input:checked ~ .checkmark { background-color: var(--titulo1); border-color: var(--titulo1); }
+.checkbox-container input:checked ~ .checkmark {
+    background-color: var(--titulo1);
+    border-color: var(--titulo1);
+    animation: checkPop .25s ease;
+}
 
 .checkbox-container input:checked ~ .checkmark:after {
     content: "✓"; position: absolute;
@@ -115,10 +261,16 @@ form { padding: 30px; }
     color: white; font-size: 13px; font-weight: bold;
 }
 
+@keyframes checkPop {
+    0%   { transform: scale(1); }
+    50%  { transform: scale(1.25); }
+    100% { transform: scale(1); }
+}
+
 .btn {
     width: 100%; padding: 16px; border: none; border-radius: 12px;
     font-family: 'Comfortaa', sans-serif; font-size: 17px;
-    font-weight: 600; cursor: pointer; transition: all 0.3s ease;
+    font-weight: 600; cursor: pointer; transition: all 0.25s ease;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
 
@@ -134,19 +286,56 @@ form { padding: 30px; }
     box-shadow: 0 6px 20px rgba(239,69,2,.4);
 }
 
+.btn-submit:active:not(:disabled) { transform: translateY(0); }
+
 .submit-error {
     background: #fdecea; color: var(--error);
     border: 1px solid #f5c2c0; border-radius: 10px;
     padding: 12px 16px; font-size: 14px; margin-bottom: 16px;
+    animation: shake .3s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
 }
 
 .hidden { display: none; }
 
-.success-box { padding: 40px 30px; text-align: center; }
+.success-box { padding: 40px 30px; text-align: center; animation: fadeInUp .5s ease; }
 .success-box h2 { font-family: 'Lexend', sans-serif; color: var(--success); font-size: 24px; margin-bottom: 12px; }
 .success-box p { font-size: 16px; line-height: 1.6; color: var(--texto1); }
 
+/* ============================================================
+   ANIMAÇÕES DE ENTRADA (reveal on scroll / on load)
+   ============================================================ */
+.reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity .7s ease, transform .7s ease;
+}
+.reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .reveal, .reveal.is-visible { opacity: 1; transform: none; transition: none; }
+    .checkbox-container input:checked ~ .checkmark { animation: none; }
+    .submit-error { animation: none; }
+    .success-box { animation: none; }
+}
+
 @media (max-width: 480px) {
     .header h1 { font-size: 19px; }
-    .checkbox-grid { grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); }
+    .checkbox-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+    .stats-row { gap: 8px; }
+    .stat-number { font-size: 22px; }
 }

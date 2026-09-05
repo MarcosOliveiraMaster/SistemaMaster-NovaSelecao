@@ -4,6 +4,37 @@
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
+// ── Animações: reveal on scroll + contador dos números ────────
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animarContador(el) {
+    const target = parseInt(el.dataset.count, 10);
+    if (prefersReducedMotion || isNaN(target)) { el.textContent = target || 0; return; }
+    const duracao = 1200;
+    const inicio = performance.now();
+    function passo(agora) {
+        const progresso = Math.min((agora - inicio) / duracao, 1);
+        const valor = Math.round(target * (1 - Math.pow(1 - progresso, 3))); // ease-out cubic
+        el.textContent = valor;
+        if (progresso < 1) requestAnimationFrame(passo);
+    }
+    requestAnimationFrame(passo);
+}
+
+const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        entry.target.querySelectorAll('.stat-number').forEach(animarContador);
+        revealObserver.unobserve(entry.target);
+    });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.reveal').forEach((el, i) => {
+    el.style.transitionDelay = prefersReducedMotion ? '0s' : `${Math.min(i * 60, 300)}ms`;
+    revealObserver.observe(el);
+});
+
 // ── Máscaras ─────────────────────────────────────────────────
 function maskCPF(value) {
     let v = value.replace(/\D/g, '');
