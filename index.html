@@ -85,24 +85,19 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Quais dias da semana você tem disponibilidade?</label>
-                    <div class="checkbox-grid">
-                        <label class="checkbox-container"><input type="checkbox" name="dia" value="terca"><span class="checkmark"></span><span class="checkbox-label">Terça</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="dia" value="quarta"><span class="checkmark"></span><span class="checkbox-label">Quarta</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="dia" value="quinta"><span class="checkmark"></span><span class="checkbox-label">Quinta</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="dia" value="sexta"><span class="checkmark"></span><span class="checkbox-label">Sexta</span></label>
-                    </div>
-                </div>
+                    <label>Dia e horário da entrevista</label>
+                    <p class="tabs-instruction">Selecione o dia da semana abaixo e, em seguida, escolha o horário que funciona melhor para a sua entrevista.</p>
 
-                <div class="input-group">
-                    <label>Quais horários funcionam para você?</label>
-                    <div class="checkbox-grid">
-                        <label class="checkbox-container"><input type="checkbox" name="horario" value="10h"><span class="checkmark"></span><span class="checkbox-label">10h</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="horario" value="10h30"><span class="checkmark"></span><span class="checkbox-label">10h30</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="horario" value="15h"><span class="checkmark"></span><span class="checkbox-label">15h</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="horario" value="15h30"><span class="checkmark"></span><span class="checkbox-label">15h30</span></label>
-                        <label class="checkbox-container"><input type="checkbox" name="horario" value="16h"><span class="checkmark"></span><span class="checkbox-label">16h</span></label>
+                    <div class="day-tabs" id="dayTabs" role="tablist">
+                        <button type="button" class="day-tab" data-day="terca" role="tab">Terça</button>
+                        <button type="button" class="day-tab" data-day="quarta" role="tab">Quarta</button>
+                        <button type="button" class="day-tab" data-day="quinta" role="tab">Quinta</button>
+                        <button type="button" class="day-tab" data-day="sexta" role="tab">Sexta</button>
                     </div>
+
+                    <div class="checkbox-grid" id="horariosGrid" role="tabpanel"></div>
+
+                    <p id="slotSelecionadoResumo" class="slot-resumo"></p>
                 </div>
 
                 <div id="submitError" class="submit-error hidden"></div>
@@ -118,6 +113,8 @@
     </main>
 
 </div>
+
+<div id="toast" class="toast hidden" role="alert"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>

@@ -117,6 +117,92 @@ telefoneInput.addEventListener('input', () => {
     telefoneInput.value = maskTelefone(telefoneInput.value);
 });
 
+// ── Seleção de dia/horário (slot único, com disponibilidade real) ─────
+const DIAS = ['terca', 'quarta', 'quinta', 'sexta'];
+const DIA_LABEL = { terca: 'Terça', quarta: 'Quarta', quinta: 'Quinta', sexta: 'Sexta' };
+const HORARIOS = ['10h', '10h30', '15h', '15h30', '16h'];
+
+let slotsOcupados = new Set(); // "dia|horario"
+let diaAtivo = DIAS[0];
+let slotSelecionado = null; // { dia, horario }
+
+const dayTabsEl = document.getElementById('dayTabs');
+const horariosGridEl = document.getElementById('horariosGrid');
+const slotResumoEl = document.getElementById('slotSelecionadoResumo');
+const toastEl = document.getElementById('toast');
+
+let toastTimer = null;
+function mostrarToast(mensagem) {
+    toastEl.textContent = mensagem;
+    toastEl.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000);
+}
+
+async function carregarSlotsOcupados() {
+    try {
+        const { data, error } = await supabaseClient.from('slots_ocupados').select('dia_semana,horario');
+        if (error) throw error;
+        slotsOcupados = new Set((data || []).map(r => `${r.dia_semana}|${r.horario}`));
+    } catch (err) {
+        console.error('Erro ao carregar disponibilidade:', err);
+    }
+}
+
+function atualizarResumoSlot() {
+    slotResumoEl.textContent = slotSelecionado
+        ? `Selecionado: ${DIA_LABEL[slotSelecionado.dia]}, ${slotSelecionado.horario}`
+        : '';
+}
+
+function renderHorarios(dia) {
+    diaAtivo = dia;
+
+    dayTabsEl.querySelectorAll('.day-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.day === dia);
+    });
+
+    horariosGridEl.innerHTML = HORARIOS.map(horario => {
+        const ocupado = slotsOcupados.has(`${dia}|${horario}`);
+        const marcado = slotSelecionado && slotSelecionado.dia === dia && slotSelecionado.horario === horario;
+        return `<label class="checkbox-container${ocupado ? ' slot-ocupado' : ''}" data-dia="${dia}" data-horario="${horario}">
+            <input type="checkbox" ${marcado ? 'checked' : ''} ${ocupado ? 'disabled' : ''}>
+            <span class="checkmark"></span>
+            <span class="checkbox-label">${horario}</span>
+        </label>`;
+    }).join('');
+}
+
+dayTabsEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.day-tab');
+    if (!btn) return;
+    renderHorarios(btn.dataset.day);
+});
+
+horariosGridEl.addEventListener('click', (e) => {
+    const label = e.target.closest('.checkbox-container');
+    if (!label) return;
+
+    if (label.classList.contains('slot-ocupado')) {
+        e.preventDefault();
+        mostrarToast('Esse horário já está preenchido. Por favor, selecione outro.');
+        return;
+    }
+
+    e.preventDefault();
+    const dia = label.dataset.dia;
+    const horario = label.dataset.horario;
+    const jaEstaSelecionado = slotSelecionado && slotSelecionado.dia === dia && slotSelecionado.horario === horario;
+    slotSelecionado = jaEstaSelecionado ? null : { dia, horario };
+    atualizarResumoSlot();
+    renderHorarios(diaAtivo);
+});
+
+(async function initSlots() {
+    await carregarSlotsOcupados();
+    renderHorarios(diaAtivo);
+})();
+
 // ── Envio ────────────────────────────────────────────────────
 const form = document.getElementById('formInscricao');
 const btnSubmit = document.getElementById('btnSubmit');
@@ -139,15 +225,12 @@ form.addEventListener('submit', async (e) => {
     const cpfNums = cpfInput.value.replace(/\D/g, '');
     const email = sanitize(document.getElementById('email').value);
     const telefoneNums = telefoneInput.value.replace(/\D/g, '');
-    const dias = Array.from(document.querySelectorAll('input[name="dia"]:checked')).map(c => c.value);
-    const horarios = Array.from(document.querySelectorAll('input[name="horario"]:checked')).map(c => c.value);
 
     if (!nomeCompleto) return mostrarErro('Informe seu nome completo.');
     if (!validateCPF(cpfNums)) return mostrarErro('CPF inválido.');
     if (!email || !document.getElementById('email').checkValidity()) return mostrarErro('Informe um e-mail válido.');
     if (telefoneNums.length < 10) return mostrarErro('Informe um telefone válido.');
-    if (dias.length === 0) return mostrarErro('Selecione ao menos um dia disponível.');
-    if (horarios.length === 0) return mostrarErro('Selecione ao menos um horário disponível.');
+    if (!slotSelecionado) return mostrarErro('Selecione o dia e o horário da sua entrevista.');
 
     btnSubmit.disabled = true;
     btnSubmit.textContent = 'Enviando...';
@@ -155,16 +238,33 @@ form.addEventListener('submit', async (e) => {
     try {
         checkRateLimit();
 
+        // Revalida a disponibilidade bem antes de enviar, pra reduzir a chance
+        // de o usuário só descobrir que perdeu o horário depois do clique final.
+        await carregarSlotsOcupados();
+        if (slotsOcupados.has(`${slotSelecionado.dia}|${slotSelecionado.horario}`)) {
+            slotSelecionado = null;
+            atualizarResumoSlot();
+            renderHorarios(diaAtivo);
+            throw new Error('Esse horário acabou de ser preenchido por outra pessoa. Por favor, selecione outro.');
+        }
+
         const { error } = await supabaseClient.from('inscricoes').insert([{
             nome_completo: nomeCompleto,
             cpf: cpfNums,
             email,
             telefone: telefoneNums,
-            dias_disponiveis: dias,
-            horarios_disponiveis: horarios
+            dia_semana: slotSelecionado.dia,
+            horario: slotSelecionado.horario
         }]);
 
         if (error) {
+            if (error.code === '23505' && error.message?.includes('slot')) {
+                await carregarSlotsOcupados();
+                slotSelecionado = null;
+                atualizarResumoSlot();
+                renderHorarios(diaAtivo);
+                throw new Error('Esse horário acabou de ser preenchido por outra pessoa. Por favor, selecione outro.');
+            }
             if (error.code === '23505') throw new Error('Este CPF já está cadastrado.');
             throw error;
         }
