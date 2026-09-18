@@ -35,21 +35,6 @@ document.querySelectorAll('.reveal').forEach((el, i) => {
     revealObserver.observe(el);
 });
 
-// ── Navegação em 2 telas no mobile: apresentação -> formulário ─
-const pageEl = document.querySelector('.page');
-const btnAvancar = document.getElementById('btnAvancar');
-const btnVoltar = document.getElementById('btnVoltar');
-
-btnAvancar?.addEventListener('click', () => {
-    pageEl.classList.add('show-form');
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-});
-
-btnVoltar?.addEventListener('click', () => {
-    pageEl.classList.remove('show-form');
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-});
-
 // ── Máscaras ─────────────────────────────────────────────────
 function maskCPF(value) {
     let v = value.replace(/\D/g, '');
@@ -132,23 +117,14 @@ telefoneInput.addEventListener('input', () => {
     telefoneInput.value = maskTelefone(telefoneInput.value);
 });
 
-// ── Seleção de data/horário (slot único, catálogo dinâmico via Supabase) ──
-// Datas/horários oferecidos não são mais fixos no código: vêm da tabela
-// `slots_disponiveis`, editável em SistemaMaster-Central > Dashboard >
-// Professores > Agendamento de Entrevistas.
-function formatarDataLabel(dataISO) {
-    if (!dataISO) return '';
-    const [ano, mes, dia] = dataISO.split('-').map(Number);
-    const d = new Date(ano, mes - 1, dia);
-    const diaSemana = d.toLocaleDateString('pt-BR', { weekday: 'long' }).split('-feira')[0];
-    return `${diaSemana} ${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
-}
+// ── Seleção de dia/horário (slot único, com disponibilidade real) ─────
+const DIAS = ['terca', 'quarta', 'quinta', 'sexta'];
+const DIA_LABEL = { terca: 'Terça', quarta: 'Quarta', quinta: 'Quinta', sexta: 'Sexta' };
+const HORARIOS = ['10h', '10h30', '15h', '15h30', '16h'];
 
-let DATAS = [];                  // datas com ao menos 1 horário ativo, em ordem cronológica
-let horariosPorData = {};        // { data: [horario, ...] }
-let slotsOcupados = new Set();   // "data|horario"
-let dataAtiva = null;
-let slotSelecionado = null;      // { data, horario }
+let slotsOcupados = new Set(); // "dia|horario"
+let diaAtivo = DIAS[0];
+let slotSelecionado = null; // { dia, horario }
 
 const dayTabsEl = document.getElementById('dayTabs');
 const horariosGridEl = document.getElementById('horariosGrid');
@@ -163,65 +139,33 @@ function mostrarToast(mensagem) {
     toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000);
 }
 
-async function carregarCatalogoSlots() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('slots_disponiveis')
-            .select('data,horario')
-            .eq('ativo', true)
-            .order('data', { ascending: true })
-            .order('horario_ordem', { ascending: true });
-        if (error) throw error;
-
-        horariosPorData = {};
-        DATAS = [];
-        (data || []).forEach(({ data: dataSlot, horario }) => {
-            if (!horariosPorData[dataSlot]) { horariosPorData[dataSlot] = []; DATAS.push(dataSlot); }
-            horariosPorData[dataSlot].push(horario);
-        });
-    } catch (err) {
-        console.error('Erro ao carregar catálogo de horários:', err);
-        DATAS = [];
-        horariosPorData = {};
-    }
-}
-
 async function carregarSlotsOcupados() {
     try {
-        const { data, error } = await supabaseClient.from('slots_ocupados').select('data,horario');
+        const { data, error } = await supabaseClient.from('slots_ocupados').select('dia_semana,horario');
         if (error) throw error;
-        slotsOcupados = new Set((data || []).map(r => `${r.data}|${r.horario}`));
+        slotsOcupados = new Set((data || []).map(r => `${r.dia_semana}|${r.horario}`));
     } catch (err) {
         console.error('Erro ao carregar disponibilidade:', err);
     }
 }
 
-function renderDayTabs() {
-    dayTabsEl.style.setProperty('--dias-count', DATAS.length || 1);
-    dayTabsEl.innerHTML = DATAS.map(data =>
-        `<button type="button" class="day-tab" data-data="${data}" role="tab">${formatarDataLabel(data)}</button>`
-    ).join('');
-}
-
 function atualizarResumoSlot() {
     slotResumoEl.textContent = slotSelecionado
-        ? `Selecionado: ${formatarDataLabel(slotSelecionado.data)}, ${slotSelecionado.horario}`
+        ? `Selecionado: ${DIA_LABEL[slotSelecionado.dia]}, ${slotSelecionado.horario}`
         : '';
 }
 
-function renderHorarios(data) {
-    dataAtiva = data;
+function renderHorarios(dia) {
+    diaAtivo = dia;
 
     dayTabsEl.querySelectorAll('.day-tab').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.data === data);
+        btn.classList.toggle('active', btn.dataset.day === dia);
     });
 
-    const horarios = horariosPorData[data] || [];
-    horariosGridEl.style.setProperty('--horarios-count', horarios.length || 1);
-    horariosGridEl.innerHTML = horarios.map(horario => {
-        const ocupado = slotsOcupados.has(`${data}|${horario}`);
-        const marcado = slotSelecionado && slotSelecionado.data === data && slotSelecionado.horario === horario;
-        return `<label class="checkbox-container${ocupado ? ' slot-ocupado' : ''}" data-data="${data}" data-horario="${horario}">
+    horariosGridEl.innerHTML = HORARIOS.map(horario => {
+        const ocupado = slotsOcupados.has(`${dia}|${horario}`);
+        const marcado = slotSelecionado && slotSelecionado.dia === dia && slotSelecionado.horario === horario;
+        return `<label class="checkbox-container${ocupado ? ' slot-ocupado' : ''}" data-dia="${dia}" data-horario="${horario}">
             <input type="checkbox" ${marcado ? 'checked' : ''} ${ocupado ? 'disabled' : ''}>
             <span class="checkmark"></span>
             <span class="checkbox-label">${horario}</span>
@@ -232,7 +176,7 @@ function renderHorarios(data) {
 dayTabsEl.addEventListener('click', (e) => {
     const btn = e.target.closest('.day-tab');
     if (!btn) return;
-    renderHorarios(btn.dataset.data);
+    renderHorarios(btn.dataset.day);
 });
 
 horariosGridEl.addEventListener('click', (e) => {
@@ -246,28 +190,17 @@ horariosGridEl.addEventListener('click', (e) => {
     }
 
     e.preventDefault();
-    const data = label.dataset.data;
+    const dia = label.dataset.dia;
     const horario = label.dataset.horario;
-    const jaEstaSelecionado = slotSelecionado && slotSelecionado.data === data && slotSelecionado.horario === horario;
-    slotSelecionado = jaEstaSelecionado ? null : { data, horario };
+    const jaEstaSelecionado = slotSelecionado && slotSelecionado.dia === dia && slotSelecionado.horario === horario;
+    slotSelecionado = jaEstaSelecionado ? null : { dia, horario };
     atualizarResumoSlot();
-    renderHorarios(dataAtiva);
+    renderHorarios(diaAtivo);
 });
 
 (async function initSlots() {
-    horariosGridEl.innerHTML = '<p class="slots-loading">Carregando horários…</p>';
-
-    await Promise.all([carregarCatalogoSlots(), carregarSlotsOcupados()]);
-
-    if (DATAS.length === 0) {
-        dayTabsEl.innerHTML = '';
-        horariosGridEl.innerHTML = '<p class="slots-loading">Nenhum horário disponível no momento. Por favor, tente novamente mais tarde.</p>';
-        return;
-    }
-
-    renderDayTabs();
-    dataAtiva = DATAS[0];
-    renderHorarios(dataAtiva);
+    await carregarSlotsOcupados();
+    renderHorarios(diaAtivo);
 })();
 
 // ── Envio ────────────────────────────────────────────────────
@@ -308,10 +241,10 @@ form.addEventListener('submit', async (e) => {
         // Revalida a disponibilidade bem antes de enviar, pra reduzir a chance
         // de o usuário só descobrir que perdeu o horário depois do clique final.
         await carregarSlotsOcupados();
-        if (slotsOcupados.has(`${slotSelecionado.data}|${slotSelecionado.horario}`)) {
+        if (slotsOcupados.has(`${slotSelecionado.dia}|${slotSelecionado.horario}`)) {
             slotSelecionado = null;
             atualizarResumoSlot();
-            renderHorarios(dataAtiva);
+            renderHorarios(diaAtivo);
             throw new Error('Esse horário acabou de ser preenchido por outra pessoa. Por favor, selecione outro.');
         }
 
@@ -320,7 +253,7 @@ form.addEventListener('submit', async (e) => {
             cpf: cpfNums,
             email,
             telefone: telefoneNums,
-            data: slotSelecionado.data,
+            dia_semana: slotSelecionado.dia,
             horario: slotSelecionado.horario
         }]);
 
@@ -329,7 +262,7 @@ form.addEventListener('submit', async (e) => {
                 await carregarSlotsOcupados();
                 slotSelecionado = null;
                 atualizarResumoSlot();
-                renderHorarios(dataAtiva);
+                renderHorarios(diaAtivo);
                 throw new Error('Esse horário acabou de ser preenchido por outra pessoa. Por favor, selecione outro.');
             }
             if (error.code === '23505') throw new Error('Este CPF já está cadastrado.');
