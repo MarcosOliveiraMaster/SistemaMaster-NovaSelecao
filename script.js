@@ -35,6 +35,21 @@ document.querySelectorAll('.reveal').forEach((el, i) => {
     revealObserver.observe(el);
 });
 
+// ── Navegação em 2 telas no mobile: apresentação -> formulário ─
+const pageEl = document.querySelector('.page');
+const btnAvancar = document.getElementById('btnAvancar');
+const btnVoltar = document.getElementById('btnVoltar');
+
+btnAvancar?.addEventListener('click', () => {
+    pageEl.classList.add('show-form');
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+});
+
+btnVoltar?.addEventListener('click', () => {
+    pageEl.classList.remove('show-form');
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
+});
+
 // ── Máscaras ─────────────────────────────────────────────────
 function maskCPF(value) {
     let v = value.replace(/\D/g, '');
@@ -117,14 +132,20 @@ telefoneInput.addEventListener('input', () => {
     telefoneInput.value = maskTelefone(telefoneInput.value);
 });
 
-// ── Seleção de dia/horário (slot único, com disponibilidade real) ─────
-const DIAS = ['terca', 'quarta', 'quinta', 'sexta'];
-const DIA_LABEL = { terca: 'Terça', quarta: 'Quarta', quinta: 'Quinta', sexta: 'Sexta' };
-const HORARIOS = ['10h', '10h30', '15h', '15h30', '16h'];
+// ── Seleção de dia/horário (slot único, catálogo dinâmico via Supabase) ──
+// Dias/horários oferecidos não são mais fixos no código: vêm da tabela
+// `slots_disponiveis`, editável em SistemaMaster-Central > Dashboard >
+// Professores > Agendamento de Entrevistas.
+const DIA_LABEL = {
+    segunda: 'Segunda', terca: 'Terça', quarta: 'Quarta', quinta: 'Quinta',
+    sexta: 'Sexta', sabado: 'Sábado', domingo: 'Domingo'
+};
 
+let DIAS = [];                 // dias com ao menos 1 horário ativo, na ordem do catálogo
+let horariosPorDia = {};       // { dia: [horario, ...] }
 let slotsOcupados = new Set(); // "dia|horario"
-let diaAtivo = DIAS[0];
-let slotSelecionado = null; // { dia, horario }
+let diaAtivo = null;
+let slotSelecionado = null;    // { dia, horario }
 
 const dayTabsEl = document.getElementById('dayTabs');
 const horariosGridEl = document.getElementById('horariosGrid');
@@ -139,6 +160,29 @@ function mostrarToast(mensagem) {
     toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 3000);
 }
 
+async function carregarCatalogoSlots() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('slots_disponiveis')
+            .select('dia_semana,horario')
+            .eq('ativo', true)
+            .order('dia_ordem', { ascending: true })
+            .order('horario_ordem', { ascending: true });
+        if (error) throw error;
+
+        horariosPorDia = {};
+        DIAS = [];
+        (data || []).forEach(({ dia_semana, horario }) => {
+            if (!horariosPorDia[dia_semana]) { horariosPorDia[dia_semana] = []; DIAS.push(dia_semana); }
+            horariosPorDia[dia_semana].push(horario);
+        });
+    } catch (err) {
+        console.error('Erro ao carregar catálogo de horários:', err);
+        DIAS = [];
+        horariosPorDia = {};
+    }
+}
+
 async function carregarSlotsOcupados() {
     try {
         const { data, error } = await supabaseClient.from('slots_ocupados').select('dia_semana,horario');
@@ -149,9 +193,16 @@ async function carregarSlotsOcupados() {
     }
 }
 
+function renderDayTabs() {
+    dayTabsEl.style.setProperty('--dias-count', DIAS.length || 1);
+    dayTabsEl.innerHTML = DIAS.map(dia =>
+        `<button type="button" class="day-tab" data-day="${dia}" role="tab">${DIA_LABEL[dia] || dia}</button>`
+    ).join('');
+}
+
 function atualizarResumoSlot() {
     slotResumoEl.textContent = slotSelecionado
-        ? `Selecionado: ${DIA_LABEL[slotSelecionado.dia]}, ${slotSelecionado.horario}`
+        ? `Selecionado: ${DIA_LABEL[slotSelecionado.dia] || slotSelecionado.dia}, ${slotSelecionado.horario}`
         : '';
 }
 
@@ -162,7 +213,9 @@ function renderHorarios(dia) {
         btn.classList.toggle('active', btn.dataset.day === dia);
     });
 
-    horariosGridEl.innerHTML = HORARIOS.map(horario => {
+    const horarios = horariosPorDia[dia] || [];
+    horariosGridEl.style.setProperty('--horarios-count', horarios.length || 1);
+    horariosGridEl.innerHTML = horarios.map(horario => {
         const ocupado = slotsOcupados.has(`${dia}|${horario}`);
         const marcado = slotSelecionado && slotSelecionado.dia === dia && slotSelecionado.horario === horario;
         return `<label class="checkbox-container${ocupado ? ' slot-ocupado' : ''}" data-dia="${dia}" data-horario="${horario}">
@@ -199,7 +252,18 @@ horariosGridEl.addEventListener('click', (e) => {
 });
 
 (async function initSlots() {
-    await carregarSlotsOcupados();
+    horariosGridEl.innerHTML = '<p class="slots-loading">Carregando horários…</p>';
+
+    await Promise.all([carregarCatalogoSlots(), carregarSlotsOcupados()]);
+
+    if (DIAS.length === 0) {
+        dayTabsEl.innerHTML = '';
+        horariosGridEl.innerHTML = '<p class="slots-loading">Nenhum horário disponível no momento. Por favor, tente novamente mais tarde.</p>';
+        return;
+    }
+
+    renderDayTabs();
+    diaAtivo = DIAS[0];
     renderHorarios(diaAtivo);
 })();
 
